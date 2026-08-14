@@ -185,7 +185,6 @@
 </div>
 
 <script>
-    // ⚠️ PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE (ends with /exec)
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwUL1DWjxB-AS_nJb_2z8It_voTx8adyDBkU70kvD7MV9eilP8Rb81HR3IJ2sM4knpJow/exec";
 
     async function fetchResults() {
@@ -225,6 +224,7 @@
         const colMap = {};
         headers.forEach((h, idx) => {
             const cleanH = String(h).toLowerCase().trim();
+            if (cleanH.includes('voter id') || cleanH.includes('voter_id')) colMap['Voter ID'] = idx;
             if (cleanH.includes('school captain') && !cleanH.includes('vice')) colMap['School Captain'] = idx;
             if (cleanH.includes('vice school captain') || cleanH.includes('vice captain')) colMap['Vice School Captain'] = idx;
             if (cleanH.includes('sports captain')) colMap['Sports Captain'] = idx;
@@ -237,11 +237,16 @@
         });
 
         dataRows.forEach(row => {
+            // Determine vote weight: Teachers = 2 points, Students = 1 point
+            const voterId = String(row[colMap['Voter ID']] || '').toUpperCase().trim();
+            const isTeacher = voterId.includes("OMPS-STF") || voterId.includes("STF") || voterId.includes("TEACHER");
+            const voteWeight = isTeacher ? 2 : 1;
+
             ['School Captain', 'Vice School Captain', 'Sports Captain'].forEach(post => {
                 const candidate = row[colMap[post]];
                 if (candidate && String(candidate).trim() !== '') {
                     const cName = String(candidate).trim();
-                    totals[post][cName] = (totals[post][cName] || 0) + 1;
+                    totals[post][cName] = (totals[post][cName] || 0) + voteWeight;
                 }
             });
 
@@ -249,17 +254,17 @@
             const studentHouseCaptain = row[colMap['Student House Captain']];
             if (studentHouseCaptain && String(studentHouseCaptain).trim() !== '') {
                 const cName = String(studentHouseCaptain).trim();
-                if (studentHouse.includes('blue')) totals['Blue House Captain'][cName] = (totals['Blue House Captain'][cName] || 0) + 1;
-                if (studentHouse.includes('green')) totals['Green House Captain'][cName] = (totals['Green House Captain'][cName] || 0) + 1;
-                if (studentHouse.includes('red')) totals['Red House Captain'][cName] = (totals['Red House Captain'][cName] || 0) + 1;
-                if (studentHouse.includes('yellow')) totals['Yellow House Captain'][cName] = (totals['Yellow House Captain'][cName] || 0) + 1;
+                if (studentHouse.includes('blue')) totals['Blue House Captain'][cName] = (totals['Blue House Captain'][cName] || 0) + voteWeight;
+                if (studentHouse.includes('green')) totals['Green House Captain'][cName] = (totals['Green House Captain'][cName] || 0) + voteWeight;
+                if (studentHouse.includes('red')) totals['Red House Captain'][cName] = (totals['Red House Captain'][cName] || 0) + voteWeight;
+                if (studentHouse.includes('yellow')) totals['Yellow House Captain'][cName] = (totals['Yellow House Captain'][cName] || 0) + voteWeight;
             }
 
             ['Blue House Captain', 'Green House Captain', 'Red House Captain', 'Yellow House Captain'].forEach(hPost => {
                 const candidate = row[colMap[hPost]];
                 if (candidate && String(candidate).trim() !== '') {
                     const cName = String(candidate).trim();
-                    totals[hPost][cName] = (totals[hPost][cName] || 0) + 1;
+                    totals[hPost][cName] = (totals[hPost][cName] || 0) + voteWeight;
                 }
             });
         });
@@ -297,7 +302,7 @@
                         <div class="candidate-row">
                             <div class="candidate-info">
                                 <span>${cand.name} ${isWinner}</span>
-                                <span>${cand.votes} votes (${percent}%)</span>
+                                <span>${cand.votes} pts (${percent}%)</span>
                             </div>
                             <div class="progress-bg">
                                 <div class="progress-fill" style="width: ${percent}%;"></div>
