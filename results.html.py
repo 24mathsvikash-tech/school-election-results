@@ -1,92 +1,301 @@
-import os
-import pandas as pd
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OM Public School - Live Election Results</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --blue-house: #2563eb;
+            --green-house: #16a34a;
+            --red-house: #dc2626;
+            --yellow-house: #d97706;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+        }
 
-def find_data_file():
-    """Locates the downloaded Google Form responses file."""
-    files = os.listdir('.')
-    for f in files:
-        if (f.endswith('.xlsx') or f.endswith('.csv')) and 'voter' not in f.lower():
-            return f
-    return None
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
 
-def calculate_election_results():
-    data_file = find_data_file()
-    
-    if not data_file:
-        print("ERROR: No response file found in this folder!")
-        return
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-    print(f"Reading file: {data_file}\n")
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 3px solid var(--primary);
+        }
 
-    if data_file.endswith('.csv'):
-        df = pd.read_csv(data_file)
-    else:
-        df = pd.read_excel(data_file)
+        header h1 {
+            margin: 0;
+            color: var(--primary);
+            font-size: 2.2rem;
+        }
 
-    # Clean up column names (strip extra spaces)
-    df.columns = [str(col).strip() for col in df.columns]
+        header p {
+            margin: 5px 0 0;
+            color: #64748b;
+        }
 
-    # 1. General Posts Tally
-    print("==================================================")
-    print("           1. GENERAL POSTS VOTE TALLY            ")
-    print("==================================================")
-    for post in ['School Captain', 'Vice School Captain', 'Sports Captain']:
-        # Match column flexibly
-        matched_cols = [c for c in df.columns if post.lower() in c.lower()]
-        for col in matched_cols:
-            print(f"\n--- {col.upper()} ---")
-            counts = df[col].value_counts().dropna()
-            for candidate, votes in counts.items():
-                print(f"  • {candidate}: {votes} votes")
+        .refresh-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #e2e8f0;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
 
-    # 2. House Captains Tally
-    print("\n==================================================")
-    print("        2. HOUSE CAPTAINS VOTE TALLY              ")
-    print("==================================================")
-    
-    # Identify all columns related to House Captains
-    house_captain_cols = [c for c in df.columns if 'house captain' in c.lower()]
-    
-    house_votes = []
+        .btn-refresh {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
 
-    for _, row in df.iterrows():
-        voter_id = row.get('Voter ID', 'Unknown')
-        voter_house = row.get('House', 'General')
+        .btn-refresh:hover {
+            opacity: 0.9;
+        }
 
-        for col in house_captain_cols:
-            val = row.get(col)
-            if pd.notna(val) and str(val).strip() != '':
-                # Determine house name from column name or 'House' column
-                col_lower = col.lower()
-                if 'blue' in col_lower:
-                    h_name = 'Blue'
-                elif 'green' in col_lower:
-                    h_name = 'Green'
-                elif 'red' in col_lower:
-                    h_name = 'Red'
-                elif 'yellow' in col_lower:
-                    h_name = 'Yellow'
-                else:
-                    h_name = voter_house
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
 
-                house_votes.append({
-                    'Voter_ID': voter_id,
-                    'House': h_name,
-                    'Candidate': str(val).strip()
-                })
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            border-top: 5px solid var(--primary);
+        }
 
-    votes_df = pd.DataFrame(house_votes)
-    
-    if not votes_df.empty:
-        results = votes_df.groupby(['House', 'Candidate']).size().reset_index(name='Total_Votes')
-        results = results.sort_values(by=['House', 'Total_Votes'], ascending=[True, False])
+        .card.blue { border-top-color: var(--blue-house); }
+        .card.green { border-top-color: var(--green-house); }
+        .card.red { border-top-color: var(--red-house); }
+        .card.yellow { border-top-color: var(--yellow-house); }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.4rem;
+            color: var(--primary);
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 8px;
+        }
+
+        .candidate-row {
+            margin-bottom: 15px;
+        }
+
+        .candidate-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .progress-bg {
+            background: #e2e8f0;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: var(--primary);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .blue .progress-fill { background: var(--blue-house); }
+        .green .progress-fill { background: var(--green-house); }
+        .red .progress-fill { background: var(--red-house); }
+        .yellow .progress-fill { background: var(--yellow-house); }
+
+        .winner-tag {
+            font-size: 0.75rem;
+            background: #fef08a;
+            color: #854d0e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+        }
+
+        #loading {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #64748b;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>OM PUBLIC SCHOOL</h1>
+        <p>Live Student Council Election Results Portal</p>
+    </header>
+
+    <div class="refresh-bar">
+        <span>Total Votes Recorded: <strong id="total-voters">0</strong></span>
+        <div>
+            <span id="last-updated" style="font-size:0.85rem; color:#64748b; margin-right:15px;">Updated: --</span>
+            <button class="btn-refresh" onclick="fetchResults()">🔄 Refresh</button>
+        </div>
+    </div>
+
+    <div id="loading">Loading Live Results...</div>
+    <div class="grid" id="results-grid" style="display: none;"></div>
+</div>
+
+<script>
+    // ⚠️ PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE (ends in /exec)
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwUL1DWjxB-AS_nJb_2z8It_voTx8adyDBkU70kvD7MV9eilP8Rb81HR3IJ2sM4knpJow/exec";
+
+    async function fetchResults() {
+        try {
+            const response = await fetch(WEB_APP_URL + '?t=' + new Date().getTime());
+            const rows = await response.json();
+            
+            processData(rows);
+            
+            document.getElementById('last-updated').innerText = 'Updated: ' + new Date().toLocaleTimeString();
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('results-grid').style.display = 'grid';
+        } catch (error) {
+            console.error("Error fetching vote data:", error);
+            document.getElementById('loading').innerText = "Unable to load live results. Check sheet link permissions.";
+        }
+    }
+
+    function processData(rows) {
+        if (!rows || rows.length < 2) return;
+
+        const headers = rows[0];
+        const dataRows = rows.slice(1);
         
-        for house, group in results.groupby('House'):
-            print(f"\n--- {str(house).upper()} HOUSE CAPTAIN ---")
-            for _, r in group.iterrows():
-                print(f"  • {r['Candidate']}: {r['Total_Votes']} votes")
-    else:
-        print("No house captain votes recorded yet.")
+        document.getElementById('total-voters').innerText = dataRows.length;
 
-if __name__ == "__main__":
-    calculate_election_results()
+        const totals = {
+            'School Captain': {},
+            'Vice School Captain': {},
+            'Sports Captain': {},
+            'Blue House Captain': {},
+            'Green House Captain': {},
+            'Red House Captain': {},
+            'Yellow House Captain': {}
+        };
+
+        const colMap = {};
+        headers.forEach((h, idx) => {
+            const cleanH = String(h).toLowerCase().trim();
+            if (cleanH.includes('school captain') && !cleanH.includes('vice')) colMap['School Captain'] = idx;
+            if (cleanH.includes('vice school captain') || cleanH.includes('vice captain')) colMap['Vice School Captain'] = idx;
+            if (cleanH.includes('sports captain')) colMap['Sports Captain'] = idx;
+            if (cleanH.includes('house captain') && !cleanH.includes('blue') && !cleanH.includes('green') && !cleanH.includes('red') && !cleanH.includes('yellow')) colMap['Student House Captain'] = idx;
+            if (cleanH === 'house') colMap['House'] = idx;
+            if (cleanH.includes('blue house captain')) colMap['Blue House Captain'] = idx;
+            if (cleanH.includes('green house captain')) colMap['Green House Captain'] = idx;
+            if (cleanH.includes('red house captain')) colMap['Red House Captain'] = idx;
+            if (cleanH.includes('yellow house captain')) colMap['Yellow House Captain'] = idx;
+        });
+
+        dataRows.forEach(row => {
+            ['School Captain', 'Vice School Captain', 'Sports Captain'].forEach(post => {
+                const candidate = row[colMap[post]];
+                if (candidate && String(candidate).trim() !== '') {
+                    const cName = String(candidate).trim();
+                    totals[post][cName] = (totals[post][cName] || 0) + 1;
+                }
+            });
+
+            const studentHouse = String(row[colMap['House']] || '').toLowerCase();
+            const studentHouseCaptain = row[colMap['Student House Captain']];
+            if (studentHouseCaptain && String(studentHouseCaptain).trim() !== '') {
+                const cName = String(studentHouseCaptain).trim();
+                if (studentHouse.includes('blue')) totals['Blue House Captain'][cName] = (totals['Blue House Captain'][cName] || 0) + 1;
+                if (studentHouse.includes('green')) totals['Green House Captain'][cName] = (totals['Green House Captain'][cName] || 0) + 1;
+                if (studentHouse.includes('red')) totals['Red House Captain'][cName] = (totals['Red House Captain'][cName] || 0) + 1;
+                if (studentHouse.includes('yellow')) totals['Yellow House Captain'][cName] = (totals['Yellow House Captain'][cName] || 0) + 1;
+            }
+
+            ['Blue House Captain', 'Green House Captain', 'Red House Captain', 'Yellow House Captain'].forEach(hPost => {
+                const candidate = row[colMap[hPost]];
+                if (candidate && String(candidate).trim() !== '') {
+                    const cName = String(candidate).trim();
+                    totals[hPost][cName] = (totals[hPost][cName] || 0) + 1;
+                }
+            });
+        });
+
+        renderGrid(totals);
+    }
+
+    function renderGrid(totals) {
+        const grid = document.getElementById('results-grid');
+        grid.innerHTML = '';
+
+        Object.keys(totals).forEach(post => {
+            const candidates = totals[post];
+            const candidateArray = Object.keys(candidates).map(c => ({ name: c, votes: candidates[c] }));
+            candidateArray.sort((a, b) => b.votes - a.votes);
+
+            let totalPostVotes = candidateArray.reduce((sum, c) => sum + c.votes, 0);
+
+            let cardClass = 'card';
+            if (post.includes('Blue')) cardClass += ' blue';
+            if (post.includes('Green')) cardClass += ' green';
+            if (post.includes('Red')) cardClass += ' red';
+            if (post.includes('Yellow')) cardClass += ' yellow';
+
+            let cardHTML = `<div class="${cardClass}"><h2>${post}</h2>`;
+
+            if (candidateArray.length === 0) {
+                cardHTML += `<p style="color:#94a3b8;">No votes cast yet</p>`;
+            } else {
+                candidateArray.forEach((cand, idx) => {
+                    const percent = totalPostVotes > 0 ? Math.round((cand.votes / totalPostVotes) * 100) : 0;
+                    const isWinner = idx === 0 && cand.votes > 0 ? '<span class="winner-tag">👑 LEADING</span>' : '';
+
+                    cardHTML += `
+                        <div class="candidate-row">
+                            <div class="candidate-info">
+                                <span>${cand.name} ${isWinner}</span>
+                                <span>${cand.votes} votes (${percent}%)</span>
+                            </div>
+                            <div class="progress-bg">
+                                <div class="progress-fill" style="width: ${percent}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            cardHTML += `</div>`;
+            grid.innerHTML += cardHTML;
+        });
+    }
+
+    setInterval(fetchResults, 10000);
+    fetchResults();
+</script>
+
+</body>
+</html>
