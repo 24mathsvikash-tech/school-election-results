@@ -121,8 +121,26 @@
         .candidate-info {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            align-items: center;
+            margin-bottom: 8px;
             font-weight: 600;
+        }
+
+        .candidate-detail {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* SMALL CANDIDATE AVATAR (NO CROPPING) */
+        .candidate-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: contain;
+            background-color: #f1f5f9;
+            border: 2px solid #cbd5e1;
+            flex-shrink: 0;
         }
 
         .progress-bg {
@@ -187,6 +205,24 @@
 <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwUL1DWjxB-AS_nJb_2z8It_voTx8adyDBkU70kvD7MV9eilP8Rb81HR3IJ2sM4knpJow/exec";
 
+    // Candidate Photo Name Lookup Mapping
+    const candidatePhotos = {
+        "Anshu Choudhary": "candidate_sc1.jpg.jpeg",
+        "Nirbhay Patil": "candidate_sc2.jpg.jpeg",
+        "Sapna Harijan": "candidate_vsc1.jpg.jpeg",
+        "Nivedita Dubey": "candidate_vsc2.jpg.jpeg",
+        "Sarthak Jadhav": "candidate_spc1.jpg.jpeg",
+        "Kabir Mhatre": "candidate_spc2.jpg.jpeg",
+        "Devansh Sharma": "blue_hc1.jpg.jpeg",
+        "Mayank Kumar": "blue_hc2.jpg.jpeg",
+        "Shubham Saakale": "green_hc1.jpg.jpeg",
+        "Kaushal Patil": "green_hc2.jpg.jpeg",
+        "Gargi Dawange": "red_hc1.jpg.jpeg",
+        "Arya Dubey": "red_hc2.jpg.jpeg",
+        "Nandini Yadav": "yellow_hc1.jpg.jpeg",
+        "Swaraj Rote": "yellow_hc2.jpg.jpeg"
+    };
+
     async function fetchResults() {
         try {
             const response = await fetch(WEB_APP_URL + '?t=' + new Date().getTime());
@@ -224,7 +260,7 @@
         const colMap = {};
         headers.forEach((h, idx) => {
             const cleanH = String(h).toLowerCase().trim();
-            if (cleanH.includes('voter id') || cleanH.includes('voter_id')) colMap['Voter ID'] = idx;
+            if (cleanH.includes('voter') || cleanH.includes('id')) colMap['Voter ID'] = idx;
             if (cleanH.includes('school captain') && !cleanH.includes('vice')) colMap['School Captain'] = idx;
             if (cleanH.includes('vice school captain') || cleanH.includes('vice captain')) colMap['Vice School Captain'] = idx;
             if (cleanH.includes('sports captain')) colMap['Sports Captain'] = idx;
@@ -236,10 +272,11 @@
             if (cleanH.includes('yellow house captain')) colMap['Yellow House Captain'] = idx;
         });
 
+        if (colMap['Voter ID'] === undefined) colMap['Voter ID'] = 1;
+
         dataRows.forEach(row => {
-            // Determine vote weight: Teachers = 2 points, Students = 1 point
             const voterId = String(row[colMap['Voter ID']] || '').toUpperCase().trim();
-            const isTeacher = voterId.includes("OMPS-STF") || voterId.includes("STF") || voterId.includes("TEACHER");
+            const isTeacher = voterId.includes("OMPS-STF") || voterId.includes("STF") || voterId.includes("TEACHER") || voterId.includes("STAFF");
             const voteWeight = isTeacher ? 2 : 1;
 
             ['School Captain', 'Vice School Captain', 'Sports Captain'].forEach(post => {
@@ -297,11 +334,16 @@
                 candidateArray.forEach((cand, idx) => {
                     const percent = totalPostVotes > 0 ? Math.round((cand.votes / totalPostVotes) * 100) : 0;
                     const isWinner = idx === 0 && cand.votes > 0 ? '<span class="winner-tag">👑 LEADING</span>' : '';
+                    
+                    const photoFile = candidatePhotos[cand.name] || 'logo.png';
 
                     cardHTML += `
                         <div class="candidate-row">
                             <div class="candidate-info">
-                                <span>${cand.name} ${isWinner}</span>
+                                <div class="candidate-detail">
+                                    <img src="${photoFile}" alt="${cand.name}" class="candidate-avatar" onerror="this.src='candidate_${cand.name.toLowerCase().replace(/\\s+/g, '')}.jpg'; this.onerror=function(){this.style.display='none';};">
+                                    <span>${cand.name} ${isWinner}</span>
+                                </div>
                                 <span>${cand.votes} pts (${percent}%)</span>
                             </div>
                             <div class="progress-bg">
