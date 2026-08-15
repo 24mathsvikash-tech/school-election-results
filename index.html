@@ -251,10 +251,10 @@
             'School Captain': {},
             'Vice School Captain': {},
             'Sports Captain': {},
-            'Blue House Captain': {},
-            'Green House Captain': {},
-            'Red House Captain': {},
-            'Yellow House Captain': {}
+            'BLUE - ACCURACY': {},
+            'GREEN - FOCUS': {},
+            'RED - SPEED': {},
+            'YELLOW - LOGIC': {}
         };
 
         const colMap = {};
@@ -291,17 +291,25 @@
             const studentHouseCaptain = row[colMap['Student House Captain']];
             if (studentHouseCaptain && String(studentHouseCaptain).trim() !== '') {
                 const cName = String(studentHouseCaptain).trim();
-                if (studentHouse.includes('blue')) totals['Blue House Captain'][cName] = (totals['Blue House Captain'][cName] || 0) + voteWeight;
-                if (studentHouse.includes('green')) totals['Green House Captain'][cName] = (totals['Green House Captain'][cName] || 0) + voteWeight;
-                if (studentHouse.includes('red')) totals['Red House Captain'][cName] = (totals['Red House Captain'][cName] || 0) + voteWeight;
-                if (studentHouse.includes('yellow')) totals['Yellow House Captain'][cName] = (totals['Yellow House Captain'][cName] || 0) + voteWeight;
+                if (studentHouse.includes('blue')) totals['BLUE - ACCURACY'][cName] = (totals['BLUE - ACCURACY'][cName] || 0) + voteWeight;
+                if (studentHouse.includes('green')) totals['GREEN - FOCUS'][cName] = (totals['GREEN - FOCUS'][cName] || 0) + voteWeight;
+                if (studentHouse.includes('red')) totals['RED - SPEED'][cName] = (totals['RED - SPEED'][cName] || 0) + voteWeight;
+                if (studentHouse.includes('yellow')) totals['YELLOW - LOGIC'][cName] = (totals['YELLOW - LOGIC'][cName] || 0) + voteWeight;
             }
 
-            ['Blue House Captain', 'Green House Captain', 'Red House Captain', 'Yellow House Captain'].forEach(hPost => {
+            const teacherHouseMapping = {
+                'Blue House Captain': 'BLUE - ACCURACY',
+                'Green House Captain': 'GREEN - FOCUS',
+                'Red House Captain': 'RED - SPEED',
+                'Yellow House Captain': 'YELLOW - LOGIC'
+            };
+
+            Object.keys(teacherHouseMapping).forEach(hPost => {
+                const mappedTitle = teacherHouseMapping[hPost];
                 const candidate = row[colMap[hPost]];
                 if (candidate && String(candidate).trim() !== '') {
                     const cName = String(candidate).trim();
-                    totals[hPost][cName] = (totals[hPost][cName] || 0) + voteWeight;
+                    totals[mappedTitle][cName] = (totals[mappedTitle][cName] || 0) + voteWeight;
                 }
             });
         });
@@ -321,10 +329,10 @@
             let totalPostVotes = candidateArray.reduce((sum, c) => sum + c.votes, 0);
 
             let cardClass = 'card';
-            if (post.includes('Blue')) cardClass += ' blue';
-            if (post.includes('Green')) cardClass += ' green';
-            if (post.includes('Red')) cardClass += ' red';
-            if (post.includes('Yellow')) cardClass += ' yellow';
+            if (post.includes('BLUE')) cardClass += ' blue';
+            if (post.includes('GREEN')) cardClass += ' green';
+            if (post.includes('RED')) cardClass += ' red';
+            if (post.includes('YELLOW')) cardClass += ' yellow';
 
             let cardHTML = `<div class="${cardClass}"><h2>${post}</h2>`;
 
@@ -341,7 +349,7 @@
                         <div class="candidate-row">
                             <div class="candidate-info">
                                 <div class="candidate-detail">
-                                    <img src="${photoFile}" alt="${cand.name}" class="candidate-avatar" onerror="this.src='candidate_${cand.name.toLowerCase().replace(/\\s+/g, '')}.jpg'; this.onerror=function(){this.style.display='none';};">
+                                    <img src="${photoFile}" alt="${cand.name}" class="candidate-avatar" onerror="this.src='candidate_${cand.name.toLowerCase().replace(/\s+/g, '')}.jpg'; this.onerror=function(){this.style.display='none';};">
                                     <span>${cand.name} ${isWinner}</span>
                                 </div>
                                 <span>${cand.votes} pts (${percent}%)</span>
